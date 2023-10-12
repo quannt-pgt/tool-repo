@@ -57,7 +57,7 @@ export class ChapterService {
         let labelKey = "";
         if(data?.embed_link !== null) {
           const tempName = await this.extraName(data?.embed_link)
-          labelKey = `${tempName.host}_${tempName.idtruyen}_${tempName.idchuong}_${data?.story_id}_${data?.id}`;
+          labelKey = `${data?.host ?? tempName?.host}_${data?.idhost ?? tempName?.idtruyen}_${data?.idchap ?? tempName?.idchuong}_${data?.story_id}_${data?.id}`;
         } else {
           labelKey = `vip_${data?.story_id}_${data?.id}`;
         }
@@ -164,7 +164,7 @@ export class ChapterService {
   async getDataWithLimit(limit: any, offset:any) {
     return new Promise((resolve, reject) => {
       mariadbConnection.query(
-        'SELECT id, story_id, name, content, embed_link FROM chapters WHERE content IS NOT NULL LIMIT ? OFFSET ?',
+        'SELECT id, story_id, name, content, embed_link, host, idhost, idchap FROM chapters WHERE content IS NOT NULL LIMIT ? OFFSET ?',
         [limit, offset * limit],
         (error, results) => {
           if (error) {
@@ -348,7 +348,7 @@ export class ChapterService {
 
       return new Promise((resolve, reject) => {
     mariadbConnection.query(
-      'SELECT id, story_id, name, content, embed_link FROM chapters WHERE content IS NOT NULL AND updated_at > ?', [oneHourAgo],
+      'SELECT id, story_id, name, content, embed_link,  host, idhost, idchap FROM chapters WHERE content IS NOT NULL AND updated_at > ?', [oneHourAgo],
       (error, results) => {
         if (error) {
           reject(error);
@@ -364,15 +364,18 @@ export class ChapterService {
   }
 
   async extraName(url: any) {
-    console.log(url)
     const regex = /^https:\/\/([^/]+)\/(\d+)_(\d+)\.html$/;
-    const match = url.match(regex);
-    const [, host, idtruyen, idchuong] = match;
-    return {
-      host,
-      idtruyen,
-      idchuong
+    const match = url?.match(regex);
+    if(match) {
+      const [, host, idtruyen, idchuong] = match;
+      return {
+        host,
+        idtruyen,
+        idchuong
+      }
     }
+
+    return null
   }
 
   @Cron(CronExpression.EVERY_HOUR)
